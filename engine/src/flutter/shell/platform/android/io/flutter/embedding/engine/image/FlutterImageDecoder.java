@@ -8,6 +8,7 @@ import static io.flutter.Build.API_LEVELS;
 
 import android.graphics.Bitmap;
 import android.os.Build;
+import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import java.nio.ByteBuffer;
@@ -24,6 +25,7 @@ interface ImageDecoder {
  */
 @RequiresApi(io.flutter.Build.API_LEVELS.API_28)
 public class FlutterImageDecoder {
+  private static final String TAG = "FlutterImageDecoder";
 
   /** A listener to be notified when image header information has been parsed. */
   public interface HeaderListener {
@@ -45,18 +47,25 @@ public class FlutterImageDecoder {
    */
   public static Bitmap decodeImage(
       @NonNull ByteBuffer buffer, @NonNull HeaderListener headerListener) {
-    Metadata metadata = Metadata.create(buffer, headerListener);
-    ImageDecoder impl = null;
-    if (metadata.isHeif()) {
-      if (Build.VERSION.SDK_INT == API_LEVELS.API_36) {
-        impl = new ImageDecoderHeifApi36Impl();
-      } else if (Build.VERSION.SDK_INT < API_LEVELS.API_36) {
-        impl = new ImageDecoderHeifPre36Impl();
+    // Native code aborts the process if a Java throwable escapes this method, so any failure
+    // (including RuntimeExceptions and OutOfMemoryError) is reported as a failed decode instead.
+    try {
+      Metadata metadata = Metadata.create(buffer, headerListener);
+      ImageDecoder impl = null;
+      if (metadata.isHeif()) {
+        if (Build.VERSION.SDK_INT == API_LEVELS.API_36) {
+          impl = new ImageDecoderHeifApi36Impl();
+        } else if (Build.VERSION.SDK_INT < API_LEVELS.API_36) {
+          impl = new ImageDecoderHeifPre36Impl();
+        }
       }
+      if (impl == null) {
+        impl = new ImageDecoderDefaultImpl(headerListener);
+      }
+      return impl.decodeImage(buffer, metadata);
+    } catch (Throwable t) {
+      Log.e(TAG, "Failed to decode image", t);
+      return null;
     }
-    if (impl == null) {
-      impl = new ImageDecoderDefaultImpl(headerListener);
-    }
-    return impl.decodeImage(buffer, metadata);
   }
 }

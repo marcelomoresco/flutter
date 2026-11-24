@@ -48,6 +48,9 @@ class ImageDecoderHeifApi36Impl extends ImageDecoderDefaultImpl {
     BitmapFactory.Options decodeOptions = new BitmapFactory.Options();
     decodeOptions.inPreferredConfig = Bitmap.Config.ARGB_8888;
     Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, decodeOptions);
+    if (bitmap == null) {
+      return null;
+    }
     if (metadata.rotation != 0) {
       Matrix matrix = new Matrix();
       matrix.postRotate(metadata.rotation);

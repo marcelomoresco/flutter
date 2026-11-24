@@ -6,6 +6,7 @@ package io.flutter.embedding.engine.image;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import android.graphics.Bitmap;
 import android.graphics.Color;
@@ -79,5 +80,15 @@ public class ImageDecoderHeifApi36ImplTest {
     assertEquals(100, result.getWidth());
     assertEquals(200, result.getHeight());
     assertEquals(Color.BLUE, result.getPixel(100 - 1, 0));
+  }
+
+  @Test
+  public void decodeImageFallback_returnsNullForUndecodableDataWithRotation() {
+    ByteBuffer buffer = ByteBuffer.wrap(new byte[64]);
+    Metadata metadata = new Metadata();
+    metadata.rotation = 90;
+    metadata.orientation = ExifInterface.ORIENTATION_NORMAL;
+
+    assertNull(decoder.decodeImageFallback(buffer, metadata));
   }
 }
